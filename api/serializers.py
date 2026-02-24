@@ -2,9 +2,10 @@ from rest_framework import serializers
 from .models import BlogPost,User
 
 class BlogPostSerializer(serializers.ModelSerializer):
+    author = serializers.ReadOnlyField(source="author.username")
     class Meta:
         model = BlogPost
-        fields = ["id", "title", "content", "published_date"]
+        fields = ["id", "author", "title", "content", "published_date"]
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
