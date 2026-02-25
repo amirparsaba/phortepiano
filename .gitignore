@@ -3,6 +3,7 @@
 __pychace__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # Vs Code
 .vscode/
