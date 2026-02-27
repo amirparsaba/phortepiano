@@ -1,0 +1,10 @@
+# Python
+# Byte-compiled files
+__pychace__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Vs Code
+.vscode/
+*.code-workspace
