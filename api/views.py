@@ -336,3 +336,27 @@ class LogoutView(APIView):
                 {"error": str(e)}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+# File upload      
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+
+class FileUploadView(APIView):
+    parser_classes = (MultiPartParser, FormParser)   # برای دریافت فایل
+    permission_classes = [IsAuthenticated]           # حتماً کاربر لاگین کرده باشه
+
+    def post(self, request):
+        uploaded_file = request.FILES.get('file')
+        style = request.data.get('style')
+        instrument = request.data.get('instrument')
+
+        if not uploaded_file:
+            return Response({"error": "فایلی انتخاب نشده."}, status=400)
+
+        # (اختیاری) اینجا می‌تونی فایل رو ذخیره کنی
+        # فعلاً فقط یه پیغام موفقیت برمی‌گردونیم
+        return Response({
+            "message": f"فایل '{uploaded_file.name}' با موفقیت آپلود شد.",
+            "style": style,
+            "instrument": instrument
+        }, status=200)

@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from rest_framework_simplejwt.views import TokenRefreshView
+from .views import FileUploadView
 
 urlpatterns = [
     path("blogposts/", views.BlogPostListCreate.as_view(), name="blogpost-view-create"),
@@ -20,5 +21,6 @@ urlpatterns = [
     path("verify-email/", views.EmailVerificationView.as_view(), name="verify-email"),
     path("profile/", views.UserProfileView.as_view(), name="profile"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
+    path('upload/', FileUploadView.as_view(), name='upload-file'),
     
 ]
