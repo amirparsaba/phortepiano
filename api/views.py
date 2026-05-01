@@ -11,7 +11,7 @@ from django.db.models import Q
 from .models import BlogPost, User
 from .serializers import (
     BlogPostSerializer, UserSerializer, RegisterSerializer,
-    LoginSerializer, EmailVerificationSerializer
+    LoginSerializer, EmailVerificationSerializer, InitiateRegistrationSerializer, VerifyRegistrationSerializer, CompleteRegistrationSerializer
 )
 # Swagger needs :
 from drf_yasg.utils import swagger_auto_schema
@@ -360,3 +360,114 @@ class FileUploadView(APIView):
             "style": style,
             "instrument": instrument
         }, status=200)
+#email verification    
+import random
+import string
+from django.core.mail import send_mail
+from django.utils import timezone
+from .models import PendingRegistration
+
+class InitiateRegistrationView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    @swagger_auto_schema(request_body=InitiateRegistrationSerializer)
+    def post(self, request):
+        serializer = InitiateRegistrationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        # چک تکراری نبودن ایمیل / نام کاربری
+        if User.objects.filter(email=data['email']).exists():
+            return Response({"error": "این ایمیل قبلاً ثبت شده است."}, status=400)
+        if User.objects.filter(username=data['username']).exists():
+            return Response({"error": "این نام کاربری قبلاً انتخاب شده."}, status=400)
+
+        # ساخت کد ۶ رقمی
+        code = ''.join(random.choices(string.digits, k=6))
+
+        # ذخیرهٔ موقت
+        pending = PendingRegistration.objects.create(
+            first_name=data['first_name'],
+            last_name=data.get('last_name', ''),
+            email=data['email'],
+            username=data['username'],
+            password=data['password'],  # بعداً هش می‌شود
+            fav_genre=data.get('fav_genre', ''),
+            main_instrument=data.get('main_instrument', ''),
+            verification_code=code
+        )
+
+        # ارسال ایمیل
+        subject = "کد تأیید ثبت‌نام در فورته پیانو"
+        message = f"کد تأیید شما: {code}"
+        try:
+            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [data['email']], fail_silently=False)
+        except Exception as e:
+            print(f"خطا در ارسال ایمیل: {e}")
+            # در محیط توسعه با console backend، کد توی ترمینال چاپ می‌شود
+
+        return Response({"message": "کد تأیید به ایمیل شما ارسال شد."}, status=200)
+
+
+class VerifyRegistrationView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    @swagger_auto_schema(request_body=VerifyRegistrationSerializer)
+    def post(self, request):
+        serializer = VerifyRegistrationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        code = serializer.validated_data['code']
+
+        try:
+            pending = PendingRegistration.objects.get(email=email, verification_code=code)
+        except PendingRegistration.DoesNotExist:
+            return Response({"error": "کد نامعتبر است."}, status=400)
+
+        # چک زمان انقضا (اختیاری، مثلاً ۱۰ دقیقه)
+        if (timezone.now() - pending.created_at).seconds > 600:
+            pending.delete()
+            return Response({"error": "کد منقضی شده است."}, status=400)
+        pending.email_verified = True
+        pending.save()
+
+        return Response({
+            "message": "ایمیل شما تأیید شد. "
+        }, status=200)
+
+class CompleteRegistrationView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    @swagger_auto_schema(request_body=CompleteRegistrationSerializer)
+    def post(self, request):
+        serializer = CompleteRegistrationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        username = serializer.validated_data['username']
+        fav_genre = serializer.validated_data.get('fav_genre', '')
+        main_instrument = serializer.validated_data.get('main_instrument', '')
+
+        try:
+            pending = PendingRegistration.objects.get(email=email, email_verified=True)
+        except PendingRegistration.DoesNotExist:
+            return Response({"error": "ایمیل تأیید نشده یا اطلاعات موقت یافت نشد."}, status=400)
+
+        # چک تکراری نبودن نام کاربری
+        if User.objects.filter(username=username).exists():
+            return Response({"error": "این نام کاربری قبلاً انتخاب شده است."}, status=400)
+
+        # ساخت کاربر نهایی
+        user = User.objects.create_user(
+            username=username,
+            email=pending.email,
+            password=pending.password,
+            first_name=pending.first_name,
+            last_name=pending.last_name,
+            fav_genre=fav_genre,
+            main_instrument=main_instrument,
+            email_verified=True,
+            is_active=True
+        )
+
+        pending.delete()
+        return Response({"message": "ثبت‌نام با موفقیت انجام شد. اکنون می‌توانید وارد شوید."}, status=201)     

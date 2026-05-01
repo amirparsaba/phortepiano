@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import BlogPost,User
+from .models import BlogPost,User,PendingRegistration
 from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.tokens import RefreshToken
 import secrets
@@ -69,3 +69,22 @@ class LoginSerializer(serializers.Serializer):
     
 class EmailVerificationSerializer(serializers.Serializer):
     token = serializers.CharField()
+
+class InitiateRegistrationSerializer(serializers.Serializer):
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    email = serializers.EmailField()
+    username = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True, min_length=8)
+    fav_genre = serializers.CharField(required=False, allow_blank=True)
+    main_instrument = serializers.CharField(required=False, allow_blank=True)
+
+class VerifyRegistrationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+
+class CompleteRegistrationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    username = serializers.CharField(max_length=150)
+    fav_genre = serializers.CharField(required=False, allow_blank=True)
+    main_instrument = serializers.CharField(required=False, allow_blank=True)

@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import FileUploadView
+from .views import FileUploadView, InitiateRegistrationView, VerifyRegistrationView, CompleteRegistrationView
 
 urlpatterns = [
     path("blogposts/", views.BlogPostListCreate.as_view(), name="blogpost-view-create"),
@@ -22,5 +22,7 @@ urlpatterns = [
     path("profile/", views.UserProfileView.as_view(), name="profile"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     path('upload/', FileUploadView.as_view(), name='upload-file'),
-    
+    path('initiate-register/', InitiateRegistrationView.as_view(), name='initiate-register'),
+    path('verify-registration/', VerifyRegistrationView.as_view(), name='verify-registration'),
+    path('complete-registration/', CompleteRegistrationView.as_view(), name='complete-registration')
 ]

@@ -25,3 +25,19 @@ class BlogPost(models.Model):
 
     def __str__(self):
         return self.title
+    
+class PendingRegistration(models.Model):
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50, blank=True)
+    email = models.EmailField()
+    username = models.CharField(max_length=50, blank=True, null=True)
+    password = models.CharField(max_length=128)
+    fav_genre = models.CharField(max_length=30, blank=True)
+    main_instrument = models.CharField(max_length=40, blank=True)
+    verification_code = models.CharField(max_length=6)
+    email_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.email} - {self.verification_code}"
+    
