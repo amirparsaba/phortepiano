@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, BlogPost
+from .models import User, MusicSheet
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -20,8 +20,8 @@ class UserAdmin(admin.ModelAdmin):
     )
     readonly_fields = ['registered_date', 'last_login', 'date_joined']
 
-@admin.register(BlogPost)
-class BlogPostAdmin(admin.ModelAdmin):
+@admin.register(MusicSheet)
+class MusicAdmin(admin.ModelAdmin):
     list_display = ['id', 'title', 'author', 'published_date']
     list_filter = ['published_date']
     search_fields = ['title', 'content']

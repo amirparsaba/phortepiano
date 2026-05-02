@@ -14,15 +14,19 @@ class User(AbstractUser):
     def __str__(self):
         return self.username
     
-class BlogPost(models.Model):
+class MusicSheet(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="posts"
-        
+        related_name="music_sheets"
     )
-    title = models.CharField(max_length=100)
-    content = models.TextField()
+    title = models.CharField(max_length=200)                     
+    composer = models.CharField(max_length=200)                  
+    arranger = models.CharField(max_length=200, blank=True)      
+    genre = models.CharField(max_length=100)                     
+    content = models.TextField(blank=True)                   
+    tags = models.CharField(max_length=500, blank=True)          
+    attachment = models.FileField(upload_to='music_sheets/', blank=True, null=True)
     published_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -42,4 +46,13 @@ class PendingRegistration(models.Model):
 
     def __str__(self):
         return f"{self.email} - {self.verification_code}"
+
+class Comment(models.Model):
+    sheet = models.ForeignKey(MusicSheet, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def str(self):
+        return f"Comment by {self.author.username} on {self.sheet.title}"
     

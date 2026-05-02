@@ -1,16 +1,10 @@
 from rest_framework import serializers
-from .models import BlogPost,User,PendingRegistration
+from .models import MusicSheet,User,PendingRegistration, Comment
 from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.tokens import RefreshToken
 import secrets
 
 
-class BlogPostSerializer(serializers.ModelSerializer):
-    author = serializers.ReadOnlyField(source="author.username")
-    
-    class Meta:
-        model = BlogPost
-        fields = ["id", "author", "title", "content", "published_date"]
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -24,6 +18,23 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "email_verified", "registered_date", "date_joined", "is_active"
         ]
+        
+class MusicSheetSerializer(serializers.ModelSerializer):
+    author = serializers.ReadOnlyField(source="author.username")
+    thumbnail_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MusicSheet
+        fields = [
+            "id", "author", "title", "composer", "arranger",
+            "genre", "content", "tags", "attachment", "published_date",
+            "thumbnail_url",
+        ]
+    def get_thumbnail_url(self, obj):
+        if obj.attachment and obj.attachment.name.lower().endswith('.pdf'):
+            return f"/sheets/{obj.id}/page/1/"
+        
+        return None
         
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
@@ -89,3 +100,9 @@ class CompleteRegistrationSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     fav_genre = serializers.CharField(required=False, allow_blank=True)
     main_instrument = serializers.CharField(required=False, allow_blank=True)
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.ReadOnlyField(source="author.username")
+    class Meta:
+        model = Comment
+        fields = ['id', 'author', 'text', 'created_at']

@@ -8,9 +8,9 @@ from django.conf import settings
 from django.db.models import Q
 
 
-from .models import BlogPost, User
+from .models import MusicSheet, User, Comment
 from .serializers import (
-    BlogPostSerializer, UserSerializer, RegisterSerializer,
+    MusicSheetSerializer, UserSerializer, RegisterSerializer,CommentSerializer,
     LoginSerializer, EmailVerificationSerializer, InitiateRegistrationSerializer, VerifyRegistrationSerializer, CompleteRegistrationSerializer
 )
 # Swagger needs :
@@ -19,78 +19,47 @@ from drf_yasg import openapi
 
 # User Profile View for picture
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+# PDF preview for site
+import fitz 
+from django.http import HttpResponse, FileResponse
+from django.shortcuts import get_object_or_404
+from rest_framework.decorators import action
+import os
 
-class BlogPostListCreate(generics.ListCreateAPIView):
-    queryset = BlogPost.objects.all()
-    serializer_class = BlogPostSerializer
+
+# For music sheet posting
+class MusicSheetListCreate(generics.ListCreateAPIView):
+    queryset = MusicSheet.objects.all().order_by('-published_date')
+    serializer_class = MusicSheetSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    
-    
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)# getting author from logined user
+        serializer.save(author=self.request.user)
 
-    '''def create(self, request, *args, **kwargs):
-        author_id = request.data.get("author_id")
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        genre = self.request.query_params.get('genre')
+        search = self.request.query_params.get('search')
 
-        if not author_id:
-            return Response(
-                {"error": "author_id is required"},
-                status=status.HTTP_400_BAD_REQUEST
+        if genre:
+            queryset = queryset.filter(genre__iexact=genre)
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) |
+                Q(composer__icontains=search) |
+                Q(arranger__icontains=search) |
+                Q(tags__icontains=search)
             )
-        try:
-            author = User.objects.get(id=author_id)
-        except User.DoesNotExist:
-            return Response(
-                {"error": "User not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(author=author)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    '''
-    def delete(self, request, *args, **kwargs):
-        if not request.user.is_staff:
-            return Response(
-                {"error": "شما اجازه حذف همه پست هارا ندارید"},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        BlogPost.objects.all().delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return queryset
 
 
+class MusicSheetRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
+    queryset = MusicSheet.objects.all()
+    serializer_class = MusicSheetSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-class BlogPostRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
-    queryset = BlogPost.objects.all()
-    serializer_class = BlogPostSerializer
-    lookup_field = "pk"
 
-class BlogPostList(APIView):
-    @swagger_auto_schema(
-        manual_parameters=[
-            openapi.Parameter(
-                'title',
-                openapi.IN_QUERY,
-                description="filtered by post",
-                type=openapi.TYPE_STRING,
-                required=False
-            ),
-        ],
-        responses={200: BlogPostSerializer(many=True)}
-    )
-    def get(self, request, format=None):
-
-        title = request.query_params.get("title", "")
-
-        if title:
-            blog_posts = BlogPost.objects.filter(title__icontains=title)
-        else:
-            blog_posts = BlogPost.objects.all()
-
-        serializer = BlogPostSerializer(blog_posts, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
 class UserListCreate(generics.ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -475,3 +444,57 @@ class CompleteRegistrationView(APIView):
 
         pending.delete()
         return Response({"message": "ثبت‌نام با موفقیت انجام شد. اکنون می‌توانید وارد شوید."}, status=201)     
+    
+
+# For having one page of pdf preview
+class SheetPageView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk, page_num):
+        sheet = get_object_or_404(MusicSheet, pk=pk)
+        if not sheet.attachment:
+            return Response({"error": "No attachment"}, status=404)
+
+        file_path = sheet.attachment.path
+        if not file_path.lower().endswith('.pdf'):
+            return Response({"error": "Attachment is not a PDF"}, status=400)
+
+        try:
+            doc = fitz.open(file_path)
+            if page_num < 1 or page_num > doc.page_count:
+                return Response({"error": "Page number out of range"}, status=400)
+
+            page = doc.load_page(page_num - 1)  # 0‑based
+            pix = page.get_pixmap(dpi=150)
+            img_bytes = pix.tobytes("png")
+            doc.close()
+            return HttpResponse(img_bytes, content_type="image/png")
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+class CommentListCreate(generics.ListCreateAPIView):
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        sheet_id = self.kwargs['sheet_id']
+        return Comment.objects.filter(sheet_id=sheet_id).order_by('-created_at')
+
+    def perform_create(self, serializer):
+        sheet = get_object_or_404(MusicSheet, pk=self.kwargs['sheet_id'])
+        serializer.save(author=self.request.user, sheet=sheet)
+
+class SheetPageCountView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk):
+        sheet = get_object_or_404(MusicSheet, pk=pk)
+        if not sheet.attachment or not sheet.attachment.name.lower().endswith('.pdf'):
+            return Response({"page_count": 0})
+        try:
+            doc = fitz.open(sheet.attachment.path)
+            count = doc.page_count
+            doc.close()
+            return Response({"page_count": count})
+        except:
+            return Response({"page_count": 0})
