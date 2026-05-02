@@ -165,3 +165,7 @@ SWAGGER_SETTINGS = {
     "http://localhost:5501",  
 ] #for api'''
 CORS_ALLOW_ALL_ORIGINS = True
+# For Profile pic
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+

@@ -8,6 +8,8 @@ class User(AbstractUser):
     registered_date = models.DateTimeField(auto_now_add=True)
     email_verified = models.BooleanField(default=False)#email auth
     email_verification_token = models.CharField(max_length=100, blank=True, null=True)
+    bio = models.TextField(blank=True, default='')
+    profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
 
     def __str__(self):
         return self.username

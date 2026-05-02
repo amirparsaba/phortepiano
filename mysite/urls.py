@@ -3,6 +3,8 @@ from django.urls import path, include
 from rest_framework import permissions #for swagger url
 from drf_yasg.views import get_schema_view #swagger
 from drf_yasg import openapi #swagger
+from django.conf import settings
+from django.conf.urls.static import static
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -30,3 +32,5 @@ urlpatterns = [
     path('', include("api.urls") ),
     
 ]
+# Profile pic url and root
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

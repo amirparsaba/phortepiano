@@ -17,6 +17,9 @@ from .serializers import (
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
+# User Profile View for picture
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
 class BlogPostListCreate(generics.ListCreateAPIView):
     queryset = BlogPost.objects.all()
     serializer_class = BlogPostSerializer
@@ -298,6 +301,7 @@ class EmailVerificationView(APIView):
 class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     def get_object(self):
         return self.request.user
