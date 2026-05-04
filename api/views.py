@@ -129,7 +129,7 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         
-        # ارسال ایمیل تایید (با استفاده از console backend برای تست)
+        
         verification_link = f"http://localhost:8000/api/verify-email/?token={user.email_verification_token}"
         
         subject = "تایید ایمیل در وبسایت موسیقی"
@@ -194,7 +194,7 @@ class LoginView(APIView):
         username = serializer.validated_data['username']
         password = serializer.validated_data['password']
         
-        # جستجو با username یا email
+        # Search with username and email
         try:
             user = User.objects.get(Q(username=username) | Q(email=username))
         except User.DoesNotExist:
@@ -215,7 +215,7 @@ class LoginView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED
             )
         
-        # ایجاد توکن JWT
+        # JWT token built
         refresh = RefreshToken.for_user(user)
         
         return Response({
@@ -315,8 +315,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 class FileUploadView(APIView):
-    parser_classes = (MultiPartParser, FormParser)   # برای دریافت فایل
-    permission_classes = [IsAuthenticated]           # حتماً کاربر لاگین کرده باشه
+    parser_classes = (MultiPartParser, FormParser)   
+    permission_classes = [IsAuthenticated]          
 
     def post(self, request):
         uploaded_file = request.FILES.get('file')
@@ -326,8 +326,6 @@ class FileUploadView(APIView):
         if not uploaded_file:
             return Response({"error": "فایلی انتخاب نشده."}, status=400)
 
-        # (اختیاری) اینجا می‌تونی فایل رو ذخیره کنی
-        # فعلاً فقط یه پیغام موفقیت برمی‌گردونیم
         return Response({
             "message": f"فایل '{uploaded_file.name}' با موفقیت آپلود شد.",
             "style": style,
@@ -349,16 +347,16 @@ class InitiateRegistrationView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        # چک تکراری نبودن ایمیل / نام کاربری
+        # email check
         if User.objects.filter(email=data['email']).exists():
             return Response({"error": "این ایمیل قبلاً ثبت شده است."}, status=400)
         if User.objects.filter(username=data['username']).exists():
             return Response({"error": "این نام کاربری قبلاً انتخاب شده."}, status=400)
 
-        # ساخت کد ۶ رقمی
+        # verification code
         code = ''.join(random.choices(string.digits, k=6))
 
-        # ذخیرهٔ موقت
+        # pending user
         pending = PendingRegistration.objects.create(
             first_name=data['first_name'],
             last_name=data.get('last_name', ''),
@@ -370,14 +368,14 @@ class InitiateRegistrationView(APIView):
             verification_code=code
         )
 
-        # ارسال ایمیل
+        # email 
         subject = "کد تأیید ثبت‌نام در فورته پیانو"
         message = f"کد تأیید شما: {code}"
         try:
             send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [data['email']], fail_silently=False)
         except Exception as e:
             print(f"خطا در ارسال ایمیل: {e}")
-            # در محیط توسعه با console backend، کد توی ترمینال چاپ می‌شود
+            
 
         return Response({"message": "کد تأیید به ایمیل شما ارسال شد."}, status=200)
 
@@ -397,7 +395,7 @@ class VerifyRegistrationView(APIView):
         except PendingRegistration.DoesNotExist:
             return Response({"error": "کد نامعتبر است."}, status=400)
 
-        # چک زمان انقضا (اختیاری، مثلاً ۱۰ دقیقه)
+        # time expire check
         if (timezone.now() - pending.created_at).seconds > 600:
             pending.delete()
             return Response({"error": "کد منقضی شده است."}, status=400)
@@ -425,11 +423,11 @@ class CompleteRegistrationView(APIView):
         except PendingRegistration.DoesNotExist:
             return Response({"error": "ایمیل تأیید نشده یا اطلاعات موقت یافت نشد."}, status=400)
 
-        # چک تکراری نبودن نام کاربری
+        #username check 
         if User.objects.filter(username=username).exists():
             return Response({"error": "این نام کاربری قبلاً انتخاب شده است."}, status=400)
 
-        # ساخت کاربر نهایی
+        # building the user
         user = User.objects.create_user(
             username=username,
             email=pending.email,
@@ -464,7 +462,7 @@ class SheetPageView(APIView):
             if page_num < 1 or page_num > doc.page_count:
                 return Response({"error": "Page number out of range"}, status=400)
 
-            page = doc.load_page(page_num - 1)  # 0‑based
+            page = doc.load_page(page_num - 1)  
             pix = page.get_pixmap(dpi=150)
             img_bytes = pix.tobytes("png")
             doc.close()
