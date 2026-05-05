@@ -29,6 +29,14 @@ class MusicSheet(models.Model):
     attachment = models.FileField(upload_to='music_sheets/', blank=True, null=True)
     published_date = models.DateTimeField(auto_now_add=True)
 
+    LEVEL_CHOICES = [
+        ('beginner', 'مبتدی'),
+        ('intermediate', 'متوسط'),
+        ('advanced', 'پیشرفته'),
+    ]
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='intermediate')
+    file_size = models.CharField(max_length=20, blank=True)
+
     def __str__(self):
         return self.title
     

@@ -28,7 +28,7 @@ class MusicSheetSerializer(serializers.ModelSerializer):
         fields = [
             "id", "author", "title", "composer", "arranger",
             "genre", "content", "tags", "attachment", "published_date",
-            "thumbnail_url",
+            "thumbnail_url", "level", "file_size",
         ]
     def get_thumbnail_url(self, obj):
         if obj.attachment and obj.attachment.name.lower().endswith('.pdf'):

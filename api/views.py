@@ -34,8 +34,17 @@ class MusicSheetListCreate(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
+    
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        sheet = serializer.save(author=self.request.user)
+        if sheet.attachment:
+            size_bytes = sheet.attachment.size
+            if size_bytes < 1024 * 1024:
+                size_str = f"{size_bytes / 1024:.1f} کیلوبایت"
+            else:
+                size_str = f"{size_bytes / (1024 * 1024):.1f} مگابایت"
+            sheet.file_size = size_str
+            sheet.save()
 
     def get_queryset(self):
         queryset = super().get_queryset()
