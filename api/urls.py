@@ -1,9 +1,10 @@
 from django.urls import path
 from . import views
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import (FileUploadView, InitiateRegistrationView, VerifyRegistrationView, 
-                    CompleteRegistrationView, MusicSheetListCreate, MusicSheetRetrieveUpdateDestroy, 
-                    SheetPageView, CommentListCreate, SheetPageCountView, UserSheetsView)
+from .views import (FileUploadView, InitiateRegistrationView, VerifyRegistrationView,
+                    CompleteRegistrationView, MusicSheetListCreate, MusicSheetRetrieveUpdateDestroy,
+                    SheetPageView, CommentListCreate, SheetPageCountView, UserSheetsView, UserPublicSheetsView,
+                    UserPublicSheetsView, UserList)
 
 urlpatterns = [
     path("users/", views.UserListCreate.as_view(), name="user-view-create"),
@@ -26,4 +27,6 @@ urlpatterns = [
     path('sheets/<int:sheet_id>/comments/', CommentListCreate.as_view(), name='sheet-comments'),
     path('sheets/<int:pk>/page_count/', SheetPageCountView.as_view(), name='sheet-page-count'),
     path('my-sheets/', UserSheetsView.as_view(), name='my-sheets'),
+    path("users/<str:username>/sheets/", UserPublicSheetsView.as_view(), name="user-public-sheets"),
+    path("users/search/", UserList.as_view(), name="user-search"),
 ]

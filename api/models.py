@@ -39,7 +39,7 @@ class MusicSheet(models.Model):
 
     def __str__(self):
         return self.title
-    
+
 class PendingRegistration(models.Model):
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50, blank=True)
@@ -63,4 +63,6 @@ class Comment(models.Model):
 
     def str(self):
         return f"Comment by {self.author.username} on {self.sheet.title}"
+
+
     

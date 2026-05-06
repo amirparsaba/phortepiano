@@ -48,17 +48,6 @@ class UserRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
 class UserList(APIView):
     permission_classes = [permissions.AllowAny]
 
-    @swagger_auto_schema(
-        manual_parameters=[
-            openapi.Parameter(
-                'username', openapi.IN_QUERY,
-                description="جستجوی کاربر بر اساس نام کاربری",
-                type=openapi.TYPE_STRING,
-                required=False
-            ),
-        ],
-        responses={200: UserSerializer(many=True)}
-    )
     def get(self, request, format=None):
         username = request.query_params.get("username", "")
         if username:
@@ -371,3 +360,12 @@ class CommentListCreate(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         sheet = get_object_or_404(MusicSheet, pk=self.kwargs['sheet_id'])
         serializer.save(author=self.request.user, sheet=sheet)
+
+class UserPublicSheetsView(generics.ListAPIView):
+    serializer_class = MusicSheetSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        username = self.kwargs.get('username')
+        author = get_object_or_404(User, username=username)
+        return MusicSheet.objects.filter(author=author).order_by('-published_date')

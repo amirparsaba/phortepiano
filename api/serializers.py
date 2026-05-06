@@ -6,6 +6,7 @@ import secrets
 
 
 
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -33,7 +34,6 @@ class MusicSheetSerializer(serializers.ModelSerializer):
     def get_thumbnail_url(self, obj):
         if obj.attachment and obj.attachment.name.lower().endswith('.pdf'):
             return f"/sheets/{obj.id}/page/1/"
-        
         return None
         
 class RegisterSerializer(serializers.ModelSerializer):
@@ -58,7 +58,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password2')
         
-        #email auth- token creation
+
         email_token = secrets.token_urlsafe(32)
         
         user = User.objects.create_user(

@@ -8,3 +8,11 @@ __pychace__/
 # Vs Code
 .vscode/
 *.code-workspace
+/shelf/
+/workspace.xml
+/queries/
+/dataSources/
+/dataSources.local.xml
+/httpRequests/
+.idea
+.vscode
